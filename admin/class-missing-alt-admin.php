@@ -74,7 +74,7 @@ class Missing_Alt_Admin
 
     wp_enqueue_style(
       $this->plugin_name,
-      plugin_dir_url(__FILE__) . "css/missing-alt-admin.css",
+      plugin_dir_url(__FILE__) . "css/index.css",
       [],
       $this->version,
       "all"
@@ -100,12 +100,20 @@ class Missing_Alt_Admin
      * class.
      */
 
-    wp_enqueue_script(
+    // Register the script
+    wp_register_script(
       $this->plugin_name,
-      plugin_dir_url(__FILE__) . "js/missing-alt-admin.js",
-      ["jquery"],
+      plugin_dir_url(__FILE__) . "js/index.js",
+      [],
       $this->version,
       false
     );
+
+    wp_localize_script($this->plugin_name, "ajax_convert_decorative", [
+      "ajaxurl" => admin_url("admin-ajax.php"),
+    ]);
+
+    // Enqueued script with localized data.
+    wp_enqueue_script($this->plugin_name);
   }
 }

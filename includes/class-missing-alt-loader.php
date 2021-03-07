@@ -164,10 +164,52 @@ class Missing_Alt_Loader
       );
     }
 
+    add_action("wp_ajax_convert_decorative", "convert_decorative");
+    add_action("wp_ajax_nopriv_convert_decorative", "convert_decorative");
+
+    function convert_decorative()
+    {
+      function failed()
+      {
+        $response = [
+          "message" => "failed",
+        ];
+
+        echo json_encode($response);
+        wp_die();
+      }
+
+      /*
+      If AJAX/Fetch request contains key 'id' then
+      Get the value of 'id' as a string
+
+      If no 'id' defined then exit function
+     */
+      $id = isset($_POST["id"]) ? $_POST["id"] : failed();
+
+      /*
+      If AJAX/Fetch request contains key 'value' then
+      Get the value of 'value' as a string
+
+      If no 'value' defined then exit function
+     */
+      $value = isset($_POST["value"]) ? $_POST["value"] : failed();
+
+      update_post_meta($id, "only_decorative", $value);
+
+      $response = [
+        "id" => $id,
+        "message" => "success",
+        "updated" => $value,
+      ];
+
+      echo json_encode($response);
+      wp_die();
+    }
+
     add_action("admin_menu", "missing_alt_menu_item");
     function missing_alt_menu_item()
-
-		{
+    {
       $page_title = "Missing Alt";
       $menu_title = "Missing Alt";
       $capability = "manage_options";
@@ -187,71 +229,119 @@ class Missing_Alt_Loader
       );
     }
 
-		// AND post_content LIKE '%<img%alt=\"\"%'
-
+    // AND post_content LIKE '%<img%alt=\"\"%'
 
     function extra_post_info_page()
     {
-			$sql = "SELECT ID FROM `wp_posts` WHERE post_type='attachment'";
+      $sql = "SELECT ID FROM `wp_posts` WHERE post_type='attachment'";
 
-			global $wpdb;
-			$wpdb->get_results($sql);
-			$results = $wpdb->last_result;
+      global $wpdb;
+      $wpdb->get_results($sql);
+      $results = $wpdb->last_result;
 
-			$bad = [];
-			$good = [];
+      $bad = [];
+      $good = [];
+      $decorative = [];
 
-			foreach ($results as $key=>$value):
-				$id = $value->ID;
+      foreach ($results as $key => $value):
+        $id = $value->ID;
 
-				$alt_text = get_post_meta($id, '_wp_attachment_image_alt', true);
+        $alt_text = get_post_meta($id, "_wp_attachment_image_alt", true);
+        $decorative_comparison = get_post_meta($id, "only_decorative");
+        $compare = $decorative_comparison[0];
+        $only_decorative = $compare === "true";
 
-				if($alt_text):
-					$good[] = $id;
-				else:
-					$bad[] = $id;
-				endif;
-			endforeach;
+        $object = (object) [
+          "id" => $id,
+          "alt_text" => $alt_text,
+          "is_decorative" => $only_decorative,
+        ];
 
-			$count_total = count($results);
-			$count_good = count($good);
-			$count_bad = count($bad);
+        if ($alt_text):
+          $good[] = $object;
+        elseif (!$only_decorative):
+          $bad[] = $object;
+        else:
+          $decorative[] = $object;
+        endif;
+      endforeach;
 
-			    function get_percentage($total, $number)
-					{
-$percentage = ($number !== 0 ? ($number / $total) : 0) * 100;
-			return round($percentage, 2);
-    }
+      $count_total = count($results);
+      $count_good = count($good);
+      $count_bad = count($bad);
+      $count_decorative = count($decorative);
 
-		$coverage_good = get_percentage($count_total, $count_good);
-		$coverage_bad = get_percentage($count_total, $count_bad);
+      function get_percentage($total, $number)
+      {
+        $percentage = ($number !== 0 ? $number / $total : 0) * 100;
+        return round($percentage, 2);
+      }
 
-      ob_start(); ?>
+      $coverage_good = get_percentage($count_total, $count_good);
+      $coverage_bad = get_percentage($count_total, $count_bad);
+      $coverage_decorative = get_percentage($count_total, $count_decorative);
+
+      ob_start();
+      ?>
 
 			<div style="margin: 0 50px;">
 			<h1>Missing Alt text</h1>
-			<p>You've added alt text to <?=$count_good?> (<?=$coverage_good?>%) images.</p>
-			<p>You're missing alt text on <?=$count_bad?> (<?=$coverage_bad?>%) images.</p>
+			<p>You've added alt text to <?= $count_good ?> (<?= $coverage_good ?>%) images.</p>
+			<p>You're missing alt text on <?= $count_bad ?> (<?= $coverage_bad ?>%) images.</p>
+			<p>You have <?= $count_decorative ?> (<?= $coverage_decorative ?>%) decorative images.</p>
 			<table><thead>
 			<tr>
 			<th>ID</th>
+			<th>Is Decorative</th>
 			<th>Actions</th>
 			<th>Status</th>
+      <th>Alt Text</th>
 			</tr>
 			</thead>
 			<tbody>
 			<? foreach($bad as $value): ?>
-			<tr>
-				<td><?=$value?></td>
-				<td><a href="/wp/wp-admin/post.php?post=<?=$value?>&action=edit" target="_blank">Edit</a></td>
+			<tr class="<?= $value->is_decorative
+     ? "row row--missing row--decorative"
+     : "row row--missing" ?>">
+				<td><?= $value->id ?></td>
+        <td>
+          <button class="button button--decorative-handler" id="decorative_button_<?= $value->id ?>" data-id="<?= $value->id ?>">
+          Is Decorative
+          </button>
+        </td>
+				<td><a href="/wp/wp-admin/post.php?post=<?= $value->id ?>&action=edit" target="_blank">Edit</a></td>
 				<td>Missing alt text attribute</td>
+        <td><?= $value->alt_text ?></td>
 			</tr>
 			<? endforeach; ?>
 			<? foreach($good as $value): ?>
-			<tr>
-				<td><?=$value?></td>
-				<td><a href="/wp/wp-admin/post.php?post=<?=$value?>&action=edit" target="_blank">Edit</a></td>
+			<tr class="<?= $value->is_decorative
+     ? "row row--provided row--decorative"
+     : "row row--provided" ?>">
+				<td><?= $value->id ?></td>
+        <td>
+          <button class="button button--decorative-handler" id="decorative_button_<?= $value->id ?>" data-id="<?= $value->id ?>">
+          Is Decorative
+          </button>
+        </td>
+				<td><a href="/wp/wp-admin/post.php?post=<?= $value->id ?>&action=edit" target="_blank">Edit</a></td>
 				<td>Has a valid alt text attribute</td>
+        <td><?= $value->alt_text ?></td>
+			</tr>
+			<? endforeach; ?>
+      <? foreach($decorative as $value): ?>
+			<tr class="<?= $value->is_decorative
+     ? "row row--provided row--decorative"
+     : "row row--provided" ?>">
+				<td><?= $value->id ?></td>
+        <td>
+          <button class="button button--decorative-handler" id="decorative_button_<?= $value->id ?>" data-id="<?= $value->id ?>">
+          Is Decorative
+          </button>
+        </td>
+				<td></td>
+				<td></td>
+        <td></td>
 			</tr>
 			<? endforeach; ?>
 			</tbody>
@@ -259,10 +349,8 @@ $percentage = ($number !== 0 ? ($number / $total) : 0) * 100;
 			</div>
 
 			<?php
-
-
    $my_var = ob_get_clean();
-	 echo $my_var;
+   echo $my_var;
     }
   }
 }

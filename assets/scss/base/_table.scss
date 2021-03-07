@@ -1,0 +1,105 @@
+table {
+  -moz-font-feature-settings: “tnum”;
+  -webkit-font-feature-settings: “tnum”;
+  font-feature-settings: “tnum”;
+  font-variant-numeric: tabular-nums;
+}
+
+table:not([role="presentation"]) {
+  border-collapse: collapse;
+  margin: 24px 0;
+  max-width: 100%;
+  width: 100%;
+
+  text-align: left;
+
+  caption {
+    padding: var(--spacingDefault);
+    background-color: var(--grey200);
+    font-weight: 700;
+    text-align: left;
+  }
+}
+
+td,
+th {
+  padding: 16px;
+
+  &:first-of-type {
+    padding-left: 4px;
+  }
+
+  &:last-of-type {
+    padding-right: 8px;
+  }
+}
+
+td {
+  vertical-align: top;
+}
+
+th {
+  padding: 4px 16px;
+
+  background-color: #f5f6fa;
+  color: #a3a6b4;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+tr th[scope="row"] {
+  letter-spacing: initial;
+  text-transform: initial;
+}
+
+tr {
+  background-color: var(--white);
+  border-top: 1px solid var(--grey200);
+  transition: background-color 0.2s ease;
+
+  &:active,
+  &:focus,
+  &:hover {
+    background-color: #f5f6fa;
+
+    .table__actions {
+      opacity: 1;
+    }
+  }
+}
+
+.table__actions {
+  white-space: nowrap;
+
+  a,
+  button {
+    display: inline-block;
+
+    cursor: pointer;
+
+    &:active,
+    &:focus,
+    &:hover {
+      text-decoration: underline;
+    }
+
+    + a,
+    + button {
+      margin-left: 8px;
+      padding-left: 8px;
+      border-left: 1px solid var(--grey200);
+    }
+  }
+}
+
+.row--missing {
+  background-color: #ffe6e1;
+}
+
+.row--provided {
+  background-color: #e1ffe3;
+}
+
+.row--decorative {
+  background-color: #faedba;
+}
