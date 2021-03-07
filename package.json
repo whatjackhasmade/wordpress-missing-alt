@@ -1,0 +1,13 @@
+{
+  "name": "missing-alt",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "prettier": "prettier --write ."
+  },
+  "devDependencies": {
+    "@prettier/plugin-php": "^0.16.1",
+    "prettier": "^2.2.1"
+  }
+}
